@@ -12,7 +12,6 @@ type BorderContainer struct {
 
 func NewBorderContainer(
 	parent *qt6.QWidget,
-	layout *qt6.QLayout,
 	borderWidth int,
 	padding int,
 	borderColor *qt6.QColor,
@@ -24,18 +23,6 @@ func NewBorderContainer(
 		borderColor: borderColor,
 		padding:     padding,
 	}
-
-	// Important: margins create the "padding" for the border
-	contentsMargins := borderWidth + w.padding
-	layout.SetContentsMargins(
-		contentsMargins,
-		contentsMargins,
-		contentsMargins,
-		contentsMargins,
-	)
-	layout.SetSpacing(layout.Spacing())
-
-	w.SetLayout(layout)
 
 	w.OnPaintEvent(w.PaintEvent)
 
@@ -74,4 +61,17 @@ func (w *BorderContainer) PaintEvent(
 	painter.SetBrush(qt6.NewQBrush())
 
 	painter.DrawRect(borderRect)
+}
+
+func (w *BorderContainer) SetLayout(layout *qt6.QLayout) {
+	contentsMargins := w.borderWidth + w.padding
+	layout.SetContentsMargins(
+		contentsMargins,
+		contentsMargins,
+		contentsMargins,
+		contentsMargins,
+	)
+	layout.SetSpacing(layout.Spacing())
+
+	w.QWidget.SetLayout(layout)
 }

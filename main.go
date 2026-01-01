@@ -3,6 +3,7 @@ package main
 import (
 	"System_Monitor/cpu"
 	"System_Monitor/debug"
+	"System_Monitor/ui"
 	"fmt"
 	"os"
 
@@ -15,11 +16,15 @@ func main() {
 	window := qt6.NewQMainWindow(nil)
 	window.SetWindowTitle("MIQT Qt6 App")
 
-	rootContainer := qt6.NewQWidget(nil)
-	cpu.GenerateUI(rootContainer)
+	rootContainer := ui.NewBorderContainer(nil, 2, 8, qt6.NewQColor11(255, 255, 255, 255))
+	cpuLayout := cpu.GenerateUI()
+	rootContainer.SetLayout(cpuLayout)
+	rootContainer.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
+	//debug.AddDebugBorder(rootContainer.QWidget, "red", 1)
 
-	window.SetCentralWidget(rootContainer)
-	window.Resize(400, 300)
+	window.SetCentralWidget(rootContainer.QWidget)
+	window.SetContentsMargins(10, 10, 10, 10)
+	//window.Resize(400, 300)
 	window.Show()
 
 	fmt.Println(qApp.ObjectName())

@@ -11,6 +11,7 @@ type Info struct {
 	Model         string     `yaml:"cpu_model"`
 	Cores         uint8      `yaml:"cpu_cores"`
 	Threads       uint8      `yaml:"cpu_threads"`
+	Codename      string     `yaml:"cpu_codename"`
 	CoreTypeCount uint8      `yaml:"cpu_core_info_count"`
 	CoreTypeInfos []CoreInfo `yaml:"cpu_core_infos"`
 }
@@ -27,6 +28,16 @@ type CacheInfo struct {
 	Name   string `yaml:"cache_name"`
 	Amount uint16 `yaml:"cache_amount"`
 	Unit   string `yaml:"cache_unit"`
+}
+
+var cpuToCodename = map[string]string{
+	// Retrieved from https://en.wikipedia.org/wiki/List_of_Apple_codenames#M_series
+	// Named after islands, pretty cool naming scheme tbh
+	"apple m1": "Tonga",
+	"apple m2": "Staten",
+	"apple m3": "Ibiza",
+	"apple m4": "Donan",
+	"apple m5": "Hidra",
 }
 
 func FetchInfoOSX() Info {
@@ -46,6 +57,8 @@ func FetchInfoOSX() Info {
 
 	coreTypeCount, _ := unix.SysctlUint32("hw.nperflevels")
 	info.CoreTypeCount = uint8(coreTypeCount)
+
+	info.Codename = cpuToCodename[strings.ToLower(info.Model)]
 
 	for i := 0; i < int(coreTypeCount); i++ {
 		coreTypeInfo := CoreInfo{}

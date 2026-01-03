@@ -66,8 +66,11 @@ func FetchInfoOSX() Info {
 
 		coreTypeInfo.Name, _ = unix.Sysctl(fmt.Sprintf("%s.name", coreTypeString))
 
-		coreTypeCount, _ := unix.SysctlUint32(fmt.Sprintf("%s.physicalcpu_max", coreTypeString))
-		coreTypeInfo.CoreCount = uint8(coreTypeCount)
+		coreTypeAmount, _ := unix.SysctlUint32(fmt.Sprintf("%s.physicalcpu_max", coreTypeString))
+		coreTypeInfo.CoreCount = uint8(coreTypeAmount)
+
+		coreTypeThreadAmount, _ := unix.SysctlUint32(fmt.Sprintf("%s.logicalcpu_max", coreTypeString))
+		coreTypeInfo.ThreadCount = uint8(coreTypeThreadAmount)
 
 		cacheTypes := [3]string{"L1i", "L1d", "L2"}
 		coreTypeInfo.CacheLevelCount = 3
@@ -80,6 +83,8 @@ func FetchInfoOSX() Info {
 			cacheInfo := CacheInfo{}
 			cacheInfo.Name = cacheType
 			cacheInfo.Unit = "Bytes"
+
+			// add hw.perflevel1.cpusperl2 to get cores per l2
 
 			cacheUnits := [3]string{"KiB", "MiB", "GiB"}
 			i := 0

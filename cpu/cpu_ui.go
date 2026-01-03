@@ -25,16 +25,14 @@ func GenerateUI() *qt6.QLayout {
 	imageContainer := CreateCPUImage()
 	cpuInfoContainer := CreateCPUInfoContainer(info)
 	coreInfoGrid := CreateCoreInfoGrid(info)
-	cacheInfoGrid := CreateCacheInfoGrid(info)
 
-	//cpuLayout.SetRowStretch(0, 1)
-	//cpuLayout.SetColumnStretch(0, 1)
+	cpuLayout.SetRowStretch(0, 1)
+	cpuLayout.SetColumnStretch(0, 1)
 	cpuLayout.AddWidget4(imageContainer, 1, 1, qt6.AlignCenter)
 	cpuLayout.AddWidget4(cpuInfoContainer, 1, 2, qt6.AlignCenter)
-	cpuLayout.AddWidget4(coreInfoGrid, 2, 1, qt6.AlignCenter)
-	cpuLayout.AddWidget4(cacheInfoGrid, 2, 2, qt6.AlignCenter)
-	//cpuLayout.SetColumnStretch(3, 1)
-	//cpuLayout.SetRowStretch(3, 1)
+	cpuLayout.AddWidget5(coreInfoGrid, 2, 1, 1, 2, qt6.AlignCenter)
+	cpuLayout.SetColumnStretch(3, 1)
+	cpuLayout.SetRowStretch(3, 1)
 
 	return cpuLayout.QLayout
 }
@@ -65,132 +63,155 @@ func CreateCPUImage() *qt6.QWidget {
 }
 
 func CreateCPUInfoContainer(info Info) *qt6.QWidget {
-	layout := qt6.NewQVBoxLayout(nil)
-
-	layout.SetSpacing(5)
-	layout.SetContentsMargins(0, 0, 0, 0)
-
-	// Create bold font for styled text
 	boldFont := qt6.NewQFont()
-	boldFont.SetWeight(qt6.QFont__Black)
-	boldFont.SetPointSize(16)
+	boldFont.SetWeight(qt6.QFont__DemiBold)
+	boldFont.SetPointSize(13)
+
+	titleFont := qt6.NewQFont()
+	titleFont.SetWeight(qt6.QFont__Black)
+	titleFont.SetPointSize(16)
+
+	grid := qt6.NewQGridLayout(nil)
+	grid.SetContentsMargins(0, 0, 0, 0)
+	grid.SetHorizontalSpacing(10)
+	grid.SetVerticalSpacing(4)
 
 	title := qt6.NewQLabel5("CPU Information", nil)
-	title.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
-	title.SetFont(boldFont)
-	title.SetContentsMargins(0, 0, 0, 10)
+	title.SetFont(titleFont)
+	title.SetAlignment(qt6.AlignCenter)
+	title.SetContentsMargins(0, 0, 0, 5)
 
-	modelLabel := qt6.NewQLabel5(fmt.Sprintf("CPU Model: %s", info.Model), nil)
-	modelLabel.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
+	grid.AddWidget5(title.QWidget, 0, 0, 1, 3, qt6.AlignCenter)
 
-	coreCountLabel := qt6.NewQLabel5(fmt.Sprintf("Core Count: %d", info.Cores), nil)
-	coreCountLabel.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
+	leftCol := qt6.NewQWidget(nil)
+	rightCol := qt6.NewQWidget(nil)
 
-	threadCountLabel := qt6.NewQLabel5(fmt.Sprintf("Thread Count: %d", info.Threads), nil)
-	threadCountLabel.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
+	leftLayout := qt6.NewQVBoxLayout(nil)
+	rightLayout := qt6.NewQVBoxLayout(nil)
 
-	codenameLabel := qt6.NewQLabel5(fmt.Sprintf("Codename: %s", info.Codename), nil)
-	codenameLabel.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
+	leftLayout.SetContentsMargins(0, 0, 0, 0)
+	rightLayout.SetContentsMargins(0, 0, 0, 0)
 
-	layout.AddStretchWithStretch(1)
-	layout.AddWidget3(title.QWidget, 0, qt6.AlignHCenter)
-	layout.AddWidget3(modelLabel.QWidget, 0, qt6.AlignHCenter)
-	layout.AddWidget3(codenameLabel.QWidget, 0, qt6.AlignHCenter)
-	layout.AddWidget3(coreCountLabel.QWidget, 0, qt6.AlignHCenter)
-	layout.AddWidget3(threadCountLabel.QWidget, 0, qt6.AlignHCenter)
-	layout.AddStretchWithStretch(1)
+	leftLayout.SetSpacing(4)
+	rightLayout.SetSpacing(4)
+
+	leftCol.SetLayout(leftLayout.QLayout)
+	rightCol.SetLayout(rightLayout.QLayout)
+
+	leftCol.SetSizePolicy2(qt6.QSizePolicy__Expanding, qt6.QSizePolicy__Preferred)
+	rightCol.SetSizePolicy2(qt6.QSizePolicy__Expanding, qt6.QSizePolicy__Preferred)
+
+	addRow := func(labelText string, valueText string) {
+		label := qt6.NewQLabel5(labelText, nil)
+		label.SetFont(boldFont)
+		label.SetAlignment(qt6.AlignRight | qt6.AlignVCenter)
+
+		value := qt6.NewQLabel5(valueText, nil)
+		value.SetAlignment(qt6.AlignLeft | qt6.AlignVCenter)
+
+		leftLayout.AddWidget(label.QWidget)
+		rightLayout.AddWidget(value.QWidget)
+	}
+
+	addRow("Model", info.Model)
+	addRow("Codename", info.Codename)
+	addRow("Cores", fmt.Sprintf("%d Cores", info.Cores))
+	addRow("Threads", fmt.Sprintf("%d Threads", info.Threads))
+
+	verticalDivider := qt6.NewQFrame(nil)
+	verticalDivider.SetFrameShape(qt6.QFrame__VLine)
+	verticalDivider.SetFrameShadow(qt6.QFrame__Plain)
+	verticalDivider.SetLineWidth(1)
+
+	grid.AddWidget3(verticalDivider.QWidget, 2, 1, 1, 1)
+
+	grid.AddWidget2(leftCol, 2, 0)
+	grid.AddWidget2(rightCol, 2, 2)
+
+	// Force equal-width columns
+	grid.SetColumnStretch(0, 1)
+	grid.SetColumnStretch(2, 1)
 
 	container := qt6.NewQWidget(nil)
-	container.SetLayout(layout.QLayout)
+	container.SetLayout(grid.QLayout)
 
-	container.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
+	container.SetSizePolicy2(qt6.QSizePolicy__Preferred, qt6.QSizePolicy__Preferred)
 
 	return container
 }
 
 func CreateCoreInfoGrid(info Info) *qt6.QWidget {
-	layout := qt6.NewQGridLayout(nil)
-	layout.SetContentsMargins(0, 0, 0, 0)
-	layout.SetSpacing(0)
+	gridLayout := qt6.NewQGridLayout(nil)
+	gridLayout.SetContentsMargins(0, 0, 0, 0)
+	gridLayout.SetSpacing(0)
 
 	boldFont := qt6.NewQFont()
 	boldFont.SetWeight(qt6.QFont__DemiBold)
 	boldFont.SetPointSize(14)
 
-	metrics := qt6.NewQFontMetrics(boldFont)
-	maxWidth := 0
-
-	for _, coreInfo := range info.CoreTypeInfos {
-		w := metrics.HorizontalAdvance(coreInfo.Name) // + margins
-		if w > maxWidth {
-			maxWidth = w
-		}
-	}
+	gridColumnCount := 0
+	gridRowCount := 0
+	var spacerRowIndexes []int
 
 	for index, coreInfo := range info.CoreTypeInfos {
-		colNumber := index
-
-		layout.SetColumnStretch(colNumber, 1)
+		currentRow := index * 2
 
 		coreNameLabel := qt6.NewQLabel3(fmt.Sprint(coreInfo.Name))
 		coreNameLabel.SetFont(boldFont)
 		coreNameLabel.SetAlignment(qt6.AlignCenter)
-		coreNameLabel.SetMinimumWidth(maxWidth)
 		coreNameLabel.SetSizePolicy2(qt6.QSizePolicy__Expanding, qt6.QSizePolicy__Preferred)
-		layout.AddWidget2(coreNameLabel.QWidget, 1, colNumber)
+		gridLayout.AddWidget4(coreNameLabel.QWidget, currentRow, 1, qt6.AlignVCenter|qt6.AlignLeft)
 
-		coreCountLabel := qt6.NewQLabel3(fmt.Sprintf("%d Cores", coreInfo.CoreCount))
+		coreCountLabel := qt6.NewQLabel3(fmt.Sprintf("%dC/%dT", coreInfo.CoreCount, coreInfo.ThreadCount))
 		coreCountLabel.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
-		layout.AddWidget4(coreCountLabel.QWidget, 2, colNumber, qt6.AlignCenter)
+		coreCountLabel.SetToolTip("Cores/Threads")
+		gridLayout.AddWidget4(coreCountLabel.QWidget, currentRow, 3, qt6.AlignCenter)
 
-		coreThreadCountLabel := qt6.NewQLabel3(fmt.Sprintf("%d Threads", coreInfo.ThreadCount))
-		coreThreadCountLabel.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
-		layout.AddWidget4(coreThreadCountLabel.QWidget, 3, colNumber, qt6.AlignCenter)
-	}
+		currentColumn := 4
 
-	layout.SetRowStretch(0, 1)
-	layout.SetRowStretch(5, 1)
-
-	container := qt6.NewQWidget(nil)
-	container.SetContentsMargins(0, 0, 0, 0)
-	container.SetLayout(layout.QLayout)
-
-	return container
-}
-
-func CreateCacheInfoGrid(info Info) *qt6.QWidget {
-	layout := qt6.NewQGridLayout(nil)
-	layout.SetContentsMargins(0, 0, 0, 0)
-	layout.SetSpacing(0)
-
-	boldFont := qt6.NewQFont()
-	boldFont.SetWeight(qt6.QFont__DemiBold)
-	boldFont.SetPointSize(14)
-
-	for index, coreInfo := range info.CoreTypeInfos {
-		colNumber := index
-
-		rowNum := 2
-		for i, cacheInfo := range coreInfo.CacheLevelInfos {
-			cacheLevelLabel := qt6.NewQLabel3(fmt.Sprintf("%d %s %s", cacheInfo.Amount, cacheInfo.Unit, cacheInfo.Name))
+		for _, cacheInfo := range coreInfo.CacheLevelInfos {
+			cacheLevelLabel := qt6.NewQLabel3(fmt.Sprintf("%d%s %s", cacheInfo.Amount, cacheInfo.Unit, cacheInfo.Name))
 			cacheLevelLabel.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
-			layout.AddWidget4(cacheLevelLabel.QWidget, rowNum+i, colNumber, qt6.AlignCenter)
+			gridLayout.AddWidget4(cacheLevelLabel.QWidget, currentRow, currentColumn, qt6.AlignCenter)
+
+			currentColumn++
+		}
+
+		if currentColumn > gridColumnCount {
+			gridColumnCount = currentColumn
+		}
+		if currentRow > gridRowCount {
+			gridRowCount = currentRow
+		}
+
+		if currentRow != 0 {
+			spacerRowIndexes = append(spacerRowIndexes, currentRow-1)
 		}
 	}
 
-	cacheIndicatorLabel := qt6.NewQLabel3("Cache per core")
-	cacheIndicatorLabel.SetAlignment(qt6.AlignCenter)
-	cacheIndicatorLabel.SetFont(boldFont)
-	layout.AddWidget5(cacheIndicatorLabel.QWidget, 1, 0, 1, 2, qt6.AlignCenter)
+	for _, row := range spacerRowIndexes {
+		horizontalDivider := qt6.NewQFrame(nil)
+		horizontalDivider.SetFrameShape(qt6.QFrame__HLine)
+		horizontalDivider.SetFrameShadow(qt6.QFrame__Plain)
+		horizontalDivider.SetLineWidth(1)
+		gridLayout.AddWidget3(horizontalDivider.QWidget, row, 1, 1, gridColumnCount)
+	}
 
-	layout.SetRowStretch(0, 1)
-	layout.SetRowStretch(5, 1)
-	layout.SetHorizontalSpacing(5)
-	layout.SetVerticalSpacing(2)
+	verticalDivider := qt6.NewQFrame(nil)
+	verticalDivider.SetFrameShape(qt6.QFrame__VLine)
+	verticalDivider.SetFrameShadow(qt6.QFrame__Plain)
+	verticalDivider.SetLineWidth(1)
+
+	gridLayout.AddWidget3(verticalDivider.QWidget, 0, 2, gridRowCount+1, 1)
+
+	gridLayout.SetColumnStretch(0, 1)
+	gridLayout.SetColumnStretch(4, 1)
+	gridLayout.SetHorizontalSpacing(5)
+	gridLayout.SetVerticalSpacing(4)
 
 	container := qt6.NewQWidget(nil)
 	container.SetContentsMargins(0, 0, 0, 0)
-	container.SetLayout(layout.QLayout)
+	container.SetLayout(gridLayout.QLayout)
 
 	return container
 }

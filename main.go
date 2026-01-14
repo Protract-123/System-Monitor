@@ -3,14 +3,19 @@ package main
 import (
 	"System_Monitor/cpu"
 	"System_Monitor/debug"
+	"System_Monitor/memory"
 	"System_Monitor/ui"
 	"fmt"
 	"os"
 
 	"github.com/mappu/miqt/qt6"
+	"go.yaml.in/yaml/v4"
 )
 
 func main() {
+	yamlData, _ := yaml.Marshal(memory.FetchInfo())
+	println(string(yamlData))
+
 	qApp := qt6.NewQApplication(os.Args)
 
 	window := qt6.NewQMainWindow(nil)

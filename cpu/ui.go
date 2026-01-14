@@ -9,7 +9,7 @@ import (
 )
 
 func GenerateUI() *qt6.QLayout {
-	info := FetchInfoOSX()
+	info := FetchInfo()
 
 	// Print cpu info as yaml
 	yamlData, _ := yaml.Marshal(info)

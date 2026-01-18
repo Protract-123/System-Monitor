@@ -39,29 +39,12 @@ func FetchInfo() Info {
 	usableMemory, _ := unix.SysctlUint64("hw.memsize_usable")
 	info.UsableMemory = utils.ConvertFromBytes(float32(usableMemory))
 
-	rawSwapUsage, err := unix.SysctlRaw("vm.swapusage")
-	if err != nil || len(rawSwapUsage) < 32 {
+	err := AddSwapStats(&info)
+	if err != nil {
 		return Info{}
 	}
 
-	// Bit Layout for vm.swapusage as seen in sysctl.h
-	// 0–7   uint64 xsu_total
-	// 8–15  uint64 xsu_avail
-	// 16–23 uint64 xsu_used
-	// 24–27 uint32 xsu_pagesize
-	// 28–31 uint32 xsu_encrypted
-
-	totalSwap := binary.LittleEndian.Uint64(rawSwapUsage[0:8])
-	swapAvailable := binary.LittleEndian.Uint64(rawSwapUsage[8:16])
-	swapUsed := binary.LittleEndian.Uint64(rawSwapUsage[16:24])
-
-	pageSize := binary.LittleEndian.Uint32(rawSwapUsage[24:28])
-
-	info.SwapUsed = utils.ConvertFromBytes(float32(swapUsed))
-	info.SwapFree = utils.ConvertFromBytes(float32(swapAvailable))
-	info.SwapTotal = utils.ConvertFromBytes(uint(totalSwap))
-
-	err = AddVMStats(&info, &platformInfo, uint(pageSize))
+	err = AddVMStats(&info, &platformInfo)
 	if err != nil {
 		return Info{}
 	}
@@ -72,11 +55,39 @@ func FetchInfo() Info {
 	}
 
 	info.PlatformInfo = platformInfo
+	info.UpdateInfo = UpdateInfo
 
 	return info
 }
 
-func AddVMStats(info *Info, darwinInfo *DarwinPlatformInfo, pageSize uint) error {
+func UpdateInfo(info *Info) error {
+	platformInfo, ok := info.PlatformInfo.(DarwinPlatformInfo)
+
+	if !ok {
+		return fmt.Errorf("platformInfo is not DarwinPlatformInfo")
+	}
+
+	err := AddSwapStats(info)
+	if err != nil {
+		return err
+	}
+
+	err = AddVMStats(info, &platformInfo)
+	if err != nil {
+		return err
+	}
+
+	err = AddSystemPressure(&platformInfo)
+	if err != nil {
+		return err
+	}
+
+	info.PlatformInfo = platformInfo
+
+	return nil
+}
+
+func AddVMStats(info *Info, darwinInfo *DarwinPlatformInfo) error {
 	var stats C.vm_statistics64_data_t
 	var count C.mach_msg_type_number_t = C.HOST_VM_INFO64_COUNT
 
@@ -95,14 +106,14 @@ func AddVMStats(info *Info, darwinInfo *DarwinPlatformInfo, pageSize uint) error
 	formatMemoryValue := func(value uint) utils.ValueUnitPair[float32] {
 		unit := "Pages"
 
-		if pageSize == 0 {
+		if info.PageSize.Value == 0 {
 			return utils.ValueUnitPair[float32]{
 				Value: float32(value),
 				Unit:  unit,
 			}
 		}
 
-		return utils.ConvertFromBytes[float32](float32(value * pageSize))
+		return utils.ConvertFromBytes[float32](float32(value * info.PageSize.Value))
 	}
 
 	darwinInfo.AppMemory = formatMemoryValue(uint(stats.internal_page_count) - uint(stats.purgeable_count))
@@ -116,6 +127,37 @@ func AddVMStats(info *Info, darwinInfo *DarwinPlatformInfo, pageSize uint) error
 
 	info.FreeMemory = formatMemoryValue(freePages)
 	info.UsedMemory = formatMemoryValue(usedPages)
+
+	return nil
+}
+
+func AddSwapStats(info *Info) error {
+	rawSwapUsage, err := unix.SysctlRaw("vm.swapusage")
+	if err != nil || len(rawSwapUsage) < 32 {
+		return err
+	}
+
+	// Bit Layout for vm.swapusage as seen in sysctl.h
+	// 0–7   uint64 xsu_total
+	// 8–15  uint64 xsu_avail
+	// 16–23 uint64 xsu_used
+	// 24–27 uint32 xsu_pagesize
+	// 28–31 uint32 xsu_encrypted
+
+	totalSwap := binary.LittleEndian.Uint64(rawSwapUsage[0:8])
+	swapAvailable := binary.LittleEndian.Uint64(rawSwapUsage[8:16])
+	swapUsed := binary.LittleEndian.Uint64(rawSwapUsage[16:24])
+
+	pageSize := binary.LittleEndian.Uint32(rawSwapUsage[24:28])
+
+	info.PageSize = utils.ValueUnitPair[uint]{
+		Value: uint(pageSize),
+		Unit:  "Bytes",
+	}
+
+	info.SwapUsed = utils.ConvertFromBytes(float32(swapUsed))
+	info.SwapFree = utils.ConvertFromBytes(float32(swapAvailable))
+	info.SwapTotal = utils.ConvertFromBytes(uint(totalSwap))
 
 	return nil
 }

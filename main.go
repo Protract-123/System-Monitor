@@ -21,16 +21,32 @@ func main() {
 	window := qt6.NewQMainWindow(nil)
 	window.SetWindowTitle("MIQT Qt6 App")
 
-	rootContainer := ui.NewBorderContainer(nil, 2, 8, qt6.NewQColor11(255, 255, 255, 255))
+	rootContainer := qt6.NewQWidget2()
+	rootLayout := qt6.NewQHBoxLayout2()
+
+	cpuContainer := ui.NewBorderContainer(nil, 2, 8, qt6.NewQColor11(255, 255, 255, 255))
 	cpuLayout := cpu.GenerateUI()
-	rootContainer.SetLayout(cpuLayout)
+	cpuContainer.SetLayout(cpuLayout)
+
+	memoryContainer := ui.NewBorderContainer(nil, 2, 8, qt6.NewQColor11(255, 255, 255, 255))
+	memoryLayout := memory.GenerateUI()
+	memoryContainer.SetLayout(memoryLayout)
+
+	rootLayout.AddStretchWithStretch(1)
+	rootLayout.AddWidget(cpuContainer.QWidget)
+	rootLayout.AddWidget(memoryContainer.QWidget)
+	rootLayout.AddStretchWithStretch(1)
+
+	rootContainer.SetLayout(rootLayout.QLayout)
 	rootContainer.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
 	//debug.AddDebugBorder(rootContainer.QWidget, "red", 1)
 
-	window.SetCentralWidget(rootContainer.QWidget)
+	window.SetCentralWidget(rootContainer)
 	window.SetContentsMargins(10, 10, 10, 10)
 	//window.Resize(400, 300)
 	window.Show()
+
+	window.SetFixedSize(window.Size())
 
 	fmt.Println(qApp.ObjectName())
 	debug.DumpQObjectTree(window.QObject, 0)

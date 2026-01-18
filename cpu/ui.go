@@ -5,15 +5,14 @@ import (
 	"fmt"
 
 	"github.com/mappu/miqt/qt6"
-	"go.yaml.in/yaml/v4"
 )
 
 func GenerateUI() *qt6.QLayout {
 	info := FetchInfo()
 
-	// Print cpu info as yaml
-	yamlData, _ := yaml.Marshal(info)
-	fmt.Println(string(yamlData))
+	//// Print cpu info as yaml
+	//yamlData, _ := yaml.Marshal(info)
+	//fmt.Println(string(yamlData))
 
 	// cpuLayout is the root layout for CPU UI
 	cpuLayout := qt6.NewQGridLayout(nil)
@@ -29,7 +28,7 @@ func GenerateUI() *qt6.QLayout {
 	cpuLayout.SetRowStretch(0, 1)
 	cpuLayout.SetColumnStretch(0, 1)
 	cpuLayout.AddWidget4(imageContainer, 1, 1, qt6.AlignCenter)
-	cpuLayout.AddWidget4(cpuInfoContainer, 1, 2, qt6.AlignCenter)
+	cpuLayout.AddWidget4(cpuInfoContainer, 1, 2, qt6.AlignVCenter|qt6.AlignTop)
 	cpuLayout.AddWidget5(coreInfoGrid, 2, 1, 1, 2, qt6.AlignCenter)
 	cpuLayout.SetColumnStretch(3, 1)
 	cpuLayout.SetRowStretch(3, 1)
@@ -79,7 +78,7 @@ func CreateCPUInfoContainer(info Info) *qt6.QWidget {
 	title := qt6.NewQLabel5("CPU Information", nil)
 	title.SetFont(titleFont)
 	title.SetAlignment(qt6.AlignCenter)
-	title.SetContentsMargins(0, 0, 0, 5)
+	title.SetContentsMargins(0, 15, 0, 10)
 
 	grid.AddWidget5(title.QWidget, 0, 0, 1, 3, qt6.AlignCenter)
 
@@ -123,7 +122,9 @@ func CreateCPUInfoContainer(info Info) *qt6.QWidget {
 	verticalDivider.SetFrameShadow(qt6.QFrame__Plain)
 	verticalDivider.SetLineWidth(1)
 
-	grid.AddWidget3(verticalDivider.QWidget, 2, 1, 1, 1)
+	grid.AddWidget3(verticalDivider.QWidget, 1, 1, 3, 1)
+	grid.SetRowMinimumHeight(1, 4)
+	grid.SetRowMinimumHeight(3, 4)
 
 	grid.AddWidget2(leftCol, 2, 0)
 	grid.AddWidget2(rightCol, 2, 2)
@@ -210,7 +211,7 @@ func CreateCoreInfoGrid(info Info) *qt6.QWidget {
 	gridLayout.SetVerticalSpacing(4)
 
 	container := qt6.NewQWidget(nil)
-	container.SetContentsMargins(0, 0, 0, 0)
+	container.SetContentsMargins(0, 0, 0, 15)
 	container.SetLayout(gridLayout.QLayout)
 
 	return container

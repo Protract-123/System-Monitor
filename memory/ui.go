@@ -2,6 +2,7 @@ package memory
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/mappu/miqt/qt-restricted-extras/charts6"
@@ -17,6 +18,10 @@ func GenerateUI() *qt6.QLayout {
 
 	memoryInfoContainer, memoryInfoUpdateFunc := CreateMemoryInfoContainer(info)
 	memoryChart, memoryChartUpdateFunc := CreateMemoryGraphContainer(info)
+
+	if runtime.GOOS == "darwin" {
+		memoryChart, memoryChartUpdateFunc = CreateMemoryAreaGraph(info)
+	}
 
 	memoryLayout.AddWidget(memoryInfoContainer)
 	memoryLayout.AddWidget(memoryChart)
@@ -100,14 +105,15 @@ func CreateMemoryInfoContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 	// Rows
 	addRow("System Memory", fmt.Sprintf("%d%s", info.TotalMemory.Value, info.TotalMemory.Unit))
 	addDivider()
-	usedMemoryLabel := addRow("Used Memory", fmt.Sprintf("%.2f%s", info.UsedMemory.Value, info.UsedMemory.Unit))
-	freeMemoryLabel := addRow("Free Memory", fmt.Sprintf("%.2f%s", info.FreeMemory.Value, info.FreeMemory.Unit))
 	addRow("Usable Memory", fmt.Sprintf("%.2f%s", info.UsableMemory.Value, info.UsableMemory.Unit))
 
+	usedMemoryLabel := addRow("•  Used Memory", fmt.Sprintf("%.2f%s", info.UsedMemory.Value, info.UsedMemory.Unit))
+	freeMemoryLabel := addRow("•  Free Memory", fmt.Sprintf("%.2f%s", info.FreeMemory.Value, info.FreeMemory.Unit))
+
 	addDivider()
-	swapUsedLabel := addRow("Used Swap", fmt.Sprintf("%.2f%s", info.SwapUsed.Value, info.SwapUsed.Unit))
-	swapFreeLabel := addRow("Free Swap", fmt.Sprintf("%.2f%s", info.SwapFree.Value, info.SwapFree.Unit))
 	swapTotalLabel := addRow("Total Swap", fmt.Sprintf("%d%s", info.SwapTotal.Value, info.SwapTotal.Unit))
+	swapUsedLabel := addRow("•  Used Swap", fmt.Sprintf("%.2f%s", info.SwapUsed.Value, info.SwapUsed.Unit))
+	swapFreeLabel := addRow("•  Free Swap", fmt.Sprintf("%.2f%s", info.SwapFree.Value, info.SwapFree.Unit))
 
 	// Update Func
 	updateFunc := func(info *Info) {
@@ -132,21 +138,21 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 	memoryChart := charts6.NewQChart()
 
 	memoryUsedValues := [30]float32{}
-	memoryUsedValues[29] = info.UsedMemory.Value
+	timestamps := [30]string{}
 
-	memoryUsedLineSeries := charts6.NewQLineSeries()
-	memoryUsedLineSeries.SetColor(qt6.NewQColor3(186, 225, 255))
+	memoryUsedLine := charts6.NewQLineSeries()
+	memoryUsedLine.SetColor(qt6.NewQColor3(186, 225, 255))
 
-	memoryUsedScatterSeries := charts6.NewQScatterSeries()
-	memoryUsedScatterSeries.OnHovered(func(point *qt6.QPointF, state bool) {
+	memoryUsedMarkers := charts6.NewQScatterSeries()
+	memoryUsedMarkers.OnHovered(func(point *qt6.QPointF, state bool) {
 		if !state {
 			qt6.QToolTip_HideText()
 			return
 		}
 
 		text := fmt.Sprintf(
-			"Time: %.0f\nMemory: %.2f",
-			point.X(),
+			"Time: %s\nMemory Used: %.2f",
+			timestamps[int(point.X())],
 			point.Y(),
 		)
 
@@ -155,8 +161,9 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 			text,
 		)
 	})
-	memoryUsedScatterSeries.SetMarkerSize(3)
-	memoryUsedScatterSeries.SetColor(qt6.NewQColor3(186, 225, 255))
+	memoryUsedMarkers.SetMarkerSize(4)
+	memoryUsedMarkers.SetBorderColor(qt6.NewQColor3(0, 0, 0))
+	memoryUsedMarkers.SetColor(qt6.NewQColor3(186, 225, 255))
 
 	memoryChartXAxis := charts6.NewQValueAxis()
 	memoryChartXAxis.SetMin(0)
@@ -167,18 +174,19 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 	memoryChartYAxis.SetMin(0)
 	memoryChartYAxis.SetMax(float64(info.UsableMemory.Value))
 	memoryChartYAxis.SetTitleText("Memory Used")
+	//memoryChartYAxis.SetLabelFormat(fmt.Sprintf("%%.2f %s", info.TotalMemory.Unit))
 
-	memoryChart.AddSeries(memoryUsedLineSeries.QAbstractSeries)
-	memoryChart.AddSeries(memoryUsedScatterSeries.QAbstractSeries)
+	memoryChart.AddSeries(memoryUsedLine.QAbstractSeries)
+	memoryChart.AddSeries(memoryUsedMarkers.QAbstractSeries)
 
 	memoryChart.AddAxis(memoryChartXAxis.QAbstractAxis, qt6.AlignBottom)
 	memoryChart.AddAxis(memoryChartYAxis.QAbstractAxis, qt6.AlignRight)
 
-	memoryUsedLineSeries.AttachAxis(memoryChartXAxis.QAbstractAxis)
-	memoryUsedLineSeries.AttachAxis(memoryChartYAxis.QAbstractAxis)
+	memoryUsedLine.AttachAxis(memoryChartXAxis.QAbstractAxis)
+	memoryUsedLine.AttachAxis(memoryChartYAxis.QAbstractAxis)
 
-	memoryUsedScatterSeries.AttachAxis(memoryChartXAxis.QAbstractAxis)
-	memoryUsedScatterSeries.AttachAxis(memoryChartYAxis.QAbstractAxis)
+	memoryUsedMarkers.AttachAxis(memoryChartXAxis.QAbstractAxis)
+	memoryUsedMarkers.AttachAxis(memoryChartYAxis.QAbstractAxis)
 
 	memoryChart.SetMargins(qt6.NewQMargins2(0, 0, 0, 0))
 
@@ -197,6 +205,9 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 			copy(memoryUsedValues[0:], memoryUsedValues[1:])
 			memoryUsedValues[len(memoryUsedValues)-1] = info2.UsedMemory.Value
 
+			copy(timestamps[0:], timestamps[1:])
+			timestamps[len(timestamps)-1] = time.Now().Format("15:04")
+
 			var points [30]qt6.QPointF
 			for i := 0; i < len(memoryUsedValues); i++ {
 				// Removing non (0,0) causes crashes, for what reason I have no idea
@@ -204,8 +215,8 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 				points[i] = *qt6.NewQPointF3(float64(i), float64(memoryUsedValues[i]))
 			}
 
-			memoryUsedLineSeries.ReplaceWithPoints(points[:])
-			memoryUsedScatterSeries.ReplaceWithPoints(points[:])
+			memoryUsedLine.ReplaceWithPoints(points[:])
+			memoryUsedMarkers.ReplaceWithPoints(points[:])
 		})
 	}
 
@@ -214,6 +225,8 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 			applyChartPalette(memoryChart, memoryChartXAxis.QAbstractAxis, memoryChartYAxis.QAbstractAxis)
 		}
 	})
+
+	updateFunc(&info)
 
 	return memoryChartView.QWidget, updateFunc
 }
@@ -238,7 +251,7 @@ func applyChartPalette(
 	// Chart title
 	chart.SetTitleBrush(qt6.NewQBrush3(text))
 
-	//chart.Legend().SetBrush(qt6.NewQBrush3(window))
+	chart.Legend().SetBrush(qt6.NewQBrush3(window))
 	chart.Legend().SetLabelBrush(qt6.NewQBrush3(text))
 
 	// Axes text

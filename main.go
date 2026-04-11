@@ -2,9 +2,9 @@ package main
 
 import (
 	"System_Monitor/cpu"
-	"System_Monitor/debug"
 	"System_Monitor/memory"
 	"System_Monitor/ui"
+	"System_Monitor/utils"
 	"fmt"
 	"os"
 
@@ -44,7 +44,7 @@ func main() {
 	window.SetFixedSize(window.Size())
 
 	fmt.Println(qApp.ObjectName())
-	debug.DumpQObjectTree(window.QObject, 0)
+	utils.DumpQObjectTree(window.QObject, 0)
 
 	qt6.QApplication_Exec()
 }

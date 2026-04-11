@@ -9,14 +9,11 @@ import (
 	"os"
 
 	"github.com/mappu/miqt/qt6"
-	"go.yaml.in/yaml/v4"
 )
 
 func main() {
-	yamlData, _ := yaml.Marshal(memory.FetchInfo())
-	println(string(yamlData))
-
 	qApp := qt6.NewQApplication(os.Args)
+	ui.LoadFonts()
 
 	window := qt6.NewQMainWindow(nil)
 	window.SetWindowTitle("MIQT Qt6 App")
@@ -39,11 +36,9 @@ func main() {
 
 	rootContainer.SetLayout(rootLayout.QLayout)
 	rootContainer.SetSizePolicy2(qt6.QSizePolicy__Maximum, qt6.QSizePolicy__Maximum)
-	//debug.AddDebugBorder(rootContainer.QWidget, "red", 1)
 
 	window.SetCentralWidget(rootContainer)
 	window.SetContentsMargins(10, 10, 10, 10)
-	//window.Resize(400, 300)
 	window.Show()
 
 	window.SetFixedSize(window.Size())

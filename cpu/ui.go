@@ -117,12 +117,9 @@ func CreateCPUInfoContainer(info Info) *qt6.QWidget {
 	addRow("Cores", fmt.Sprintf("%d Cores", info.Cores))
 	addRow("Threads", fmt.Sprintf("%d Threads", info.Threads))
 
-	verticalDivider := qt6.NewQFrame(nil)
-	verticalDivider.SetFrameShape(qt6.QFrame__VLine)
-	verticalDivider.SetFrameShadow(qt6.QFrame__Plain)
-	verticalDivider.SetLineWidth(1)
-
+	verticalDivider := ui.NewDivider(1,ui.Vertical)
 	grid.AddWidget3(verticalDivider.QWidget, 1, 1, 3, 1)
+
 	grid.SetRowMinimumHeight(1, 4)
 	grid.SetRowMinimumHeight(3, 4)
 
@@ -191,18 +188,11 @@ func CreateCoreInfoGrid(info Info) *qt6.QWidget {
 	}
 
 	for _, row := range spacerRowIndexes {
-		horizontalDivider := qt6.NewQFrame(nil)
-		horizontalDivider.SetFrameShape(qt6.QFrame__HLine)
-		horizontalDivider.SetFrameShadow(qt6.QFrame__Plain)
-		horizontalDivider.SetLineWidth(1)
+		horizontalDivider := ui.NewDivider(1, ui.Horizontal)
 		gridLayout.AddWidget3(horizontalDivider.QWidget, row, 1, 1, gridColumnCount)
 	}
 
-	verticalDivider := qt6.NewQFrame(nil)
-	verticalDivider.SetFrameShape(qt6.QFrame__VLine)
-	verticalDivider.SetFrameShadow(qt6.QFrame__Plain)
-	verticalDivider.SetLineWidth(1)
-
+	verticalDivider := ui.NewDivider(1, ui.Vertical)
 	gridLayout.AddWidget3(verticalDivider.QWidget, 0, 2, gridRowCount+1, 1)
 
 	gridLayout.SetColumnStretch(0, 1)

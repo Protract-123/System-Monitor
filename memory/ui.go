@@ -1,8 +1,8 @@
 package memory
 
 import (
+	"System_Monitor/ui"
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/mappu/miqt/qt-restricted-extras/charts6"
@@ -10,73 +10,25 @@ import (
 	"github.com/mappu/miqt/qt6/mainthread"
 )
 
-func GenerateUI() *qt6.QLayout {
-	info := FetchInfo()
-
-	memoryLayout := qt6.NewQHBoxLayout2()
-	memoryLayout.SetContentsMargins(10, 10, 10, 10)
-
-	memoryInfoContainer, memoryInfoUpdateFunc := CreateMemoryInfoContainer(info)
-	memoryChart, memoryChartUpdateFunc := CreateMemoryGraphContainer(info)
-
-	if runtime.GOOS == "darwin" {
-		memoryChart, memoryChartUpdateFunc = CreateMemoryAreaGraph(info)
-	}
-
-	memoryLayout.AddWidget(memoryInfoContainer)
-	memoryLayout.AddWidget(memoryChart)
-
-	go func() {
-		secondTicker := time.NewTicker(time.Second)
-		minuteTicker := time.NewTicker(time.Minute)
-
-		for {
-			select {
-			case <-secondTicker.C:
-				if err := info.UpdateInfo(&info); err != nil {
-					return
-				}
-				memoryInfoUpdateFunc(&info)
-
-			case <-minuteTicker.C:
-				memoryChartUpdateFunc(&info)
-			}
-		}
-	}()
-
-	return memoryLayout.QLayout
-}
-
-func CreateMemoryInfoContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
-	boldFont := qt6.NewQFont()
-	boldFont.SetWeight(qt6.QFont__DemiBold)
-	boldFont.SetPointSize(13)
-
-	titleFont := qt6.NewQFont()
-	titleFont.SetWeight(qt6.QFont__Black)
-	titleFont.SetPointSize(16)
-
-	// Root layout
+func createMemoryInfoContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo *info)) {
 	rootLayout := qt6.NewQVBoxLayout(nil)
 	rootLayout.SetContentsMargins(5, 15, 0, 15)
 	rootLayout.SetSpacing(6)
 
-	// Title
 	title := qt6.NewQLabel5("Memory Breakdown", nil)
-	title.SetFont(titleFont)
+	title.SetFont(ui.HeadingFont)
 	title.SetAlignment(qt6.AlignTop | qt6.AlignHCenter)
 	title.SetContentsMargins(0, 0, 0, 10)
 
 	rootLayout.AddWidget(title.QWidget)
 
-	// Helper to create a row
 	addRow := func(labelText, valueText string) *qt6.QLabel {
 		row := qt6.NewQHBoxLayout(nil)
 		row.SetContentsMargins(0, 0, 0, 0)
 		row.SetSpacing(30)
 
 		label := qt6.NewQLabel5(labelText, nil)
-		label.SetFont(boldFont)
+		label.SetFont(ui.BoldFont)
 		label.SetAlignment(qt6.AlignLeft | qt6.AlignVCenter)
 
 		value := qt6.NewQLabel5(valueText, nil)
@@ -93,36 +45,31 @@ func CreateMemoryInfoContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 		return value
 	}
 
-	// Helper to add a horizontal divider
 	addDivider := func() {
-		divider := qt6.NewQFrame(nil)
-		divider.SetFrameShape(qt6.QFrame__HLine)
-		divider.SetFrameShadow(qt6.QFrame__Plain)
-		divider.SetLineWidth(1)
+		divider := ui.NewDivider(1, ui.Vertical)
 		rootLayout.AddWidget(divider.QWidget)
 	}
 
-	// Rows
-	addRow("System Memory", fmt.Sprintf("%d%s", info.TotalMemory.Value, info.TotalMemory.Unit))
+	addRow("System Memory", fmt.Sprintf("%d%s", memoryInfo.TotalMemory.Value, memoryInfo.TotalMemory.Unit))
 	addDivider()
-	addRow("Usable Memory", fmt.Sprintf("%.2f%s", info.UsableMemory.Value, info.UsableMemory.Unit))
+	addRow("Usable Memory", fmt.Sprintf("%.2f%s", memoryInfo.UsableMemory.Value, memoryInfo.UsableMemory.Unit))
 
-	usedMemoryLabel := addRow("•  Used Memory", fmt.Sprintf("%.2f%s", info.UsedMemory.Value, info.UsedMemory.Unit))
-	freeMemoryLabel := addRow("•  Free Memory", fmt.Sprintf("%.2f%s", info.FreeMemory.Value, info.FreeMemory.Unit))
+	usedMemoryLabel := addRow("•  Used Memory", fmt.Sprintf("%.2f%s", memoryInfo.UsedMemory.Value, memoryInfo.UsedMemory.Unit))
+	freeMemoryLabel := addRow("•  Free Memory", fmt.Sprintf("%.2f%s", memoryInfo.FreeMemory.Value, memoryInfo.FreeMemory.Unit))
 
 	addDivider()
-	swapTotalLabel := addRow("Total Swap", fmt.Sprintf("%d%s", info.SwapTotal.Value, info.SwapTotal.Unit))
-	swapUsedLabel := addRow("•  Used Swap", fmt.Sprintf("%.2f%s", info.SwapUsed.Value, info.SwapUsed.Unit))
-	swapFreeLabel := addRow("•  Free Swap", fmt.Sprintf("%.2f%s", info.SwapFree.Value, info.SwapFree.Unit))
+	swapTotalLabel := addRow("Total Swap", fmt.Sprintf("%d%s", memoryInfo.SwapTotal.Value, memoryInfo.SwapTotal.Unit))
+	swapUsedLabel := addRow("•  Used Swap", fmt.Sprintf("%.2f%s", memoryInfo.SwapUsed.Value, memoryInfo.SwapUsed.Unit))
+	swapFreeLabel := addRow("•  Free Swap", fmt.Sprintf("%.2f%s", memoryInfo.SwapFree.Value, memoryInfo.SwapFree.Unit))
 
 	// Update Func
-	updateFunc := func(info *Info) {
+	updateFunc := func(memoryInfo *info) {
 		mainthread.Start(func() {
-			usedMemoryLabel.SetText(fmt.Sprintf("%.2f%s", info.UsedMemory.Value, info.UsedMemory.Unit))
-			freeMemoryLabel.SetText(fmt.Sprintf("%.2f%s", info.FreeMemory.Value, info.FreeMemory.Unit))
-			swapUsedLabel.SetText(fmt.Sprintf("%.2f%s", info.SwapUsed.Value, info.SwapUsed.Unit))
-			swapFreeLabel.SetText(fmt.Sprintf("%.2f%s", info.SwapFree.Value, info.SwapFree.Unit))
-			swapTotalLabel.SetText(fmt.Sprintf("%d%s", info.SwapTotal.Value, info.SwapTotal.Unit))
+			usedMemoryLabel.SetText(fmt.Sprintf("%.2f%s", memoryInfo.UsedMemory.Value, memoryInfo.UsedMemory.Unit))
+			freeMemoryLabel.SetText(fmt.Sprintf("%.2f%s", memoryInfo.FreeMemory.Value, memoryInfo.FreeMemory.Unit))
+			swapUsedLabel.SetText(fmt.Sprintf("%.2f%s", memoryInfo.SwapUsed.Value, memoryInfo.SwapUsed.Unit))
+			swapFreeLabel.SetText(fmt.Sprintf("%.2f%s", memoryInfo.SwapFree.Value, memoryInfo.SwapFree.Unit))
+			swapTotalLabel.SetText(fmt.Sprintf("%d%s", memoryInfo.SwapTotal.Value, memoryInfo.SwapTotal.Unit))
 		})
 	}
 
@@ -133,7 +80,7 @@ func CreateMemoryInfoContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 	return container, updateFunc
 }
 
-func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
+func createMemoryGraphContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo *info)) {
 	memoryChartView := charts6.NewQChartView2()
 	memoryChart := charts6.NewQChart()
 
@@ -172,7 +119,7 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 
 	memoryChartYAxis := charts6.NewQValueAxis()
 	memoryChartYAxis.SetMin(0)
-	memoryChartYAxis.SetMax(float64(info.UsableMemory.Value))
+	memoryChartYAxis.SetMax(float64(memoryInfo.UsableMemory.Value))
 	memoryChartYAxis.SetTitleText("Memory Used")
 	//memoryChartYAxis.SetLabelFormat(fmt.Sprintf("%%.2f %s", info.TotalMemory.Unit))
 
@@ -198,12 +145,12 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 	memoryChartView.SetRenderHint2(qt6.QPainter__Antialiasing, true)
 	memoryChartView.SetFixedSize(qt6.NewQSize2(250, 200))
 
-	applyChartPalette(memoryChart, memoryChartXAxis.QAbstractAxis, memoryChartYAxis.QAbstractAxis)
+	ui.ApplyChartPalette(memoryChart, memoryChartXAxis.QAbstractAxis, memoryChartYAxis.QAbstractAxis)
 
-	updateFunc := func(info2 *Info) {
+	updateFunc := func(memoryInfo *info) {
 		mainthread.Start(func() {
 			copy(memoryUsedValues[0:], memoryUsedValues[1:])
-			memoryUsedValues[len(memoryUsedValues)-1] = info2.UsedMemory.Value
+			memoryUsedValues[len(memoryUsedValues)-1] = memoryInfo.UsedMemory.Value
 
 			copy(timestamps[0:], timestamps[1:])
 			timestamps[len(timestamps)-1] = time.Now().Format("15:04")
@@ -222,44 +169,11 @@ func CreateMemoryGraphContainer(info Info) (*qt6.QWidget, func(info2 *Info)) {
 
 	memoryChartView.OnChangeEvent(func(super func(*qt6.QEvent), e *qt6.QEvent) {
 		if e.Type() == qt6.QEvent__PaletteChange {
-			applyChartPalette(memoryChart, memoryChartXAxis.QAbstractAxis, memoryChartYAxis.QAbstractAxis)
+			ui.ApplyChartPalette(memoryChart, memoryChartXAxis.QAbstractAxis, memoryChartYAxis.QAbstractAxis)
 		}
 	})
 
-	updateFunc(&info)
+	updateFunc(&memoryInfo)
 
 	return memoryChartView.QWidget, updateFunc
-}
-
-func applyChartPalette(
-	chart *charts6.QChart,
-	xAxis *charts6.QAbstractAxis,
-	yAxis *charts6.QAbstractAxis,
-) {
-	p := qt6.QGuiApplication_Palette()
-
-	text := p.ColorWithCr(qt6.QPalette__Text)
-	window := p.ColorWithCr(qt6.QPalette__Window)
-	base := p.ColorWithCr(qt6.QPalette__Base)
-	grid := p.ColorWithCr(qt6.QPalette__Mid)
-
-	// Chart backgrounds
-	chart.SetBackgroundBrush(qt6.NewQBrush3(window))
-	chart.SetPlotAreaBackgroundVisibleWithVisible(true)
-	chart.SetPlotAreaBackgroundBrush(qt6.NewQBrush3(base))
-
-	// Chart title
-	chart.SetTitleBrush(qt6.NewQBrush3(text))
-
-	chart.Legend().SetBrush(qt6.NewQBrush3(window))
-	chart.Legend().SetLabelBrush(qt6.NewQBrush3(text))
-
-	// Axes text
-	xAxis.SetLabelsBrush(qt6.NewQBrush3(text))
-	xAxis.SetTitleBrush(qt6.NewQBrush3(text))
-	xAxis.SetGridLineColor(grid)
-
-	yAxis.SetLabelsBrush(qt6.NewQBrush3(text))
-	yAxis.SetTitleBrush(qt6.NewQBrush3(text))
-	yAxis.SetGridLineColor(grid)
 }

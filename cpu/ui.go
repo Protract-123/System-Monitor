@@ -7,38 +7,12 @@ import (
 	"github.com/mappu/miqt/qt6"
 )
 
-func GenerateUI() *qt6.QLayout {
-	info := FetchInfo()
-
-	//// Print cpu info as yaml
-	//yamlData, _ := yaml.Marshal(info)
-	//fmt.Println(string(yamlData))
-
-	// cpuLayout is the root layout for CPU UI
-	cpuLayout := qt6.NewQGridLayout(nil)
-	cpuLayout.SetContentsMargins(10, 10, 10, 10)
-	cpuLayout.SetVerticalSpacing(10)
-	cpuLayout.SetHorizontalSpacing(5)
-
-	// Create UI Components
-	imageContainer := CreateCPUImage()
-	cpuInfoContainer := CreateCPUInfoContainer(info)
-	coreInfoGrid := CreateCoreInfoGrid(info)
-
-	cpuLayout.SetRowStretch(0, 1)
-	cpuLayout.SetColumnStretch(0, 1)
-	cpuLayout.AddWidget4(imageContainer, 1, 1, qt6.AlignCenter)
-	cpuLayout.AddWidget4(cpuInfoContainer, 1, 2, qt6.AlignVCenter|qt6.AlignTop)
-	cpuLayout.AddWidget5(coreInfoGrid, 2, 1, 1, 2, qt6.AlignCenter)
-	cpuLayout.SetColumnStretch(3, 1)
-	cpuLayout.SetRowStretch(3, 1)
-
-	return cpuLayout.QLayout
-}
-
-func CreateCPUImage() *qt6.QWidget {
+func createCPUImage() *qt6.QWidget {
 	imageObject := qt6.NewQLabel(nil)
-	pixmap := qt6.NewQPixmap7("./cpu/icons/AppleChipM1.png", "", qt6.AutoColor)
+	imageBytes, _ := icons.ReadFile("icons/AppleM1.png")
+
+	pixmap := qt6.NewQPixmap()
+	pixmap.LoadFromData5(imageBytes, "", qt6.AutoColor)
 	imageObject.SetPixmap(pixmap)
 
 	imageObject.SetAlignment(qt6.AlignCenter)
@@ -61,24 +35,16 @@ func CreateCPUImage() *qt6.QWidget {
 	return imageContainer.QWidget
 }
 
-func CreateCPUInfoContainer(info Info) *qt6.QWidget {
-	boldFont := qt6.NewQFont()
-	boldFont.SetWeight(qt6.QFont__DemiBold)
-	boldFont.SetPointSize(13)
-
-	titleFont := qt6.NewQFont()
-	titleFont.SetWeight(qt6.QFont__Black)
-	titleFont.SetPointSize(16)
-
+func createCPUInfoContainer(info info) *qt6.QWidget {
 	grid := qt6.NewQGridLayout(nil)
 	grid.SetContentsMargins(0, 0, 0, 0)
 	grid.SetHorizontalSpacing(10)
 	grid.SetVerticalSpacing(4)
 
 	title := qt6.NewQLabel5("CPU Information", nil)
-	title.SetFont(titleFont)
+	title.SetFont(ui.HeadingFont)
 	title.SetAlignment(qt6.AlignCenter)
-	title.SetContentsMargins(0, 15, 0, 10)
+	title.SetContentsMargins(0, 0, 0, 20)
 
 	grid.AddWidget5(title.QWidget, 0, 0, 1, 3, qt6.AlignCenter)
 
@@ -102,7 +68,7 @@ func CreateCPUInfoContainer(info Info) *qt6.QWidget {
 
 	addRow := func(labelText string, valueText string) {
 		label := qt6.NewQLabel5(labelText, nil)
-		label.SetFont(boldFont)
+		label.SetFont(ui.BoldFont)
 		label.SetAlignment(qt6.AlignRight | qt6.AlignVCenter)
 
 		value := qt6.NewQLabel5(valueText, nil)
@@ -117,7 +83,7 @@ func CreateCPUInfoContainer(info Info) *qt6.QWidget {
 	addRow("Cores", fmt.Sprintf("%d Cores", info.Cores))
 	addRow("Threads", fmt.Sprintf("%d Threads", info.Threads))
 
-	verticalDivider := ui.NewDivider(1,ui.Vertical)
+	verticalDivider := ui.NewDivider(1, ui.Vertical)
 	grid.AddWidget3(verticalDivider.QWidget, 1, 1, 3, 1)
 
 	grid.SetRowMinimumHeight(1, 4)
@@ -138,7 +104,7 @@ func CreateCPUInfoContainer(info Info) *qt6.QWidget {
 	return container
 }
 
-func CreateCoreInfoGrid(info Info) *qt6.QWidget {
+func createCoreInfoGrid(info info) *qt6.QWidget {
 	gridLayout := qt6.NewQGridLayout(nil)
 	gridLayout.SetContentsMargins(0, 0, 0, 0)
 	gridLayout.SetSpacing(0)

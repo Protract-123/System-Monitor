@@ -21,17 +21,26 @@ func main() {
 	rootContainer := qt6.NewQWidget2()
 	rootLayout := qt6.NewQHBoxLayout2()
 
-	cpuContainer := ui.NewBorderContainer(nil, 2, 8, qt6.NewQColor11(255, 255, 255, 255))
+	cpuContainer := qt6.NewQWidget2()
+	cpuContainer.SetContentsMargins(0, 0, 0, 0)
 	cpuLayout := cpu.GenerateUI()
 	cpuContainer.SetLayout(cpuLayout)
 
-	memoryContainer := ui.NewBorderContainer(nil, 2, 8, qt6.NewQColor11(255, 255, 255, 255))
+	//utils.AddDebugBorder(cpuContainer, "red", 1)
+
+	memoryContainer := qt6.NewQWidget2()
 	memoryLayout := memory.GenerateUI()
 	memoryContainer.SetLayout(memoryLayout)
 
+	//utils.AddDebugBorder(memoryContainer, "red", 1)
+
+	var divider = ui.NewDivider(1, ui.Vertical)
+	rootLayout.SetSpacing(10)
+
 	rootLayout.AddStretchWithStretch(1)
-	rootLayout.AddWidget(cpuContainer.QWidget)
-	rootLayout.AddWidget(memoryContainer.QWidget)
+	rootLayout.AddWidget(cpuContainer)
+	rootLayout.AddWidget(divider.QWidget)
+	rootLayout.AddWidget(memoryContainer)
 	rootLayout.AddStretchWithStretch(1)
 
 	rootContainer.SetLayout(rootLayout.QLayout)

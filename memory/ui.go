@@ -12,13 +12,13 @@ import (
 
 func createMemoryInfoContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo *info)) {
 	rootLayout := qt6.NewQVBoxLayout(nil)
-	rootLayout.SetContentsMargins(5, 15, 0, 15)
+	rootLayout.SetContentsMargins(0, 0, 0, 0)
 	rootLayout.SetSpacing(6)
 
 	title := qt6.NewQLabel5("Memory Breakdown", nil)
 	title.SetFont(ui.HeadingFont)
-	title.SetAlignment(qt6.AlignTop | qt6.AlignHCenter)
-	title.SetContentsMargins(0, 0, 0, 10)
+	title.SetAlignment(qt6.AlignCenter)
+	title.SetContentsMargins(0, 0, 0, 0)
 
 	rootLayout.AddWidget(title.QWidget)
 
@@ -46,7 +46,7 @@ func createMemoryInfoContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo *
 	}
 
 	addDivider := func() {
-		divider := ui.NewDivider(1, ui.Vertical)
+		divider := ui.NewDivider(1, ui.Horizontal)
 		rootLayout.AddWidget(divider.QWidget)
 	}
 
@@ -62,7 +62,6 @@ func createMemoryInfoContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo *
 	swapUsedLabel := addRow("•  Used Swap", fmt.Sprintf("%.2f%s", memoryInfo.SwapUsed.Value, memoryInfo.SwapUsed.Unit))
 	swapFreeLabel := addRow("•  Free Swap", fmt.Sprintf("%.2f%s", memoryInfo.SwapFree.Value, memoryInfo.SwapFree.Unit))
 
-	// Update Func
 	updateFunc := func(memoryInfo *info) {
 		mainthread.Start(func() {
 			usedMemoryLabel.SetText(fmt.Sprintf("%.2f%s", memoryInfo.UsedMemory.Value, memoryInfo.UsedMemory.Unit))

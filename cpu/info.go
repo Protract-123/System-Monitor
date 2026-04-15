@@ -1,21 +1,23 @@
 package cpu
 
-type Info struct {
+import "embed"
+
+type info struct {
 	Model         string     `yaml:"cpu_model"`
 	Cores         uint       `yaml:"cpu_cores"`
 	Threads       uint       `yaml:"cpu_threads"`
 	Codename      string     `yaml:"cpu_codename"`
-	CoreTypeInfos []CoreInfo `yaml:"cpu_core_infos"`
+	CoreTypeInfos []coreInfo `yaml:"cpu_core_infos"`
 }
 
-type CoreInfo struct {
+type coreInfo struct {
 	Name            string      `yaml:"core_name"`
 	CoreCount       uint        `yaml:"core_count"`
 	ThreadCount     uint        `yaml:"core_thread_count"`
-	CacheLevelInfos []CacheInfo `yaml:"core_cache_infos"`
+	CacheLevelInfos []cacheInfo `yaml:"core_cache_infos"`
 }
 
-type CacheInfo struct {
+type cacheInfo struct {
 	Name   string `yaml:"cache_name"`
 	Amount uint   `yaml:"cache_amount"`
 	Unit   string `yaml:"cache_unit"`
@@ -30,3 +32,6 @@ var cpuToCodename = map[string]string{
 	"apple m4": "Donan",
 	"apple m5": "Hidra",
 }
+
+//go:embed icons
+var icons embed.FS

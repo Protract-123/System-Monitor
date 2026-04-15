@@ -27,12 +27,14 @@ func GenerateUI() *qt6.QLayout {
 	memoryInfo := fetchInfo()
 
 	memoryLayout := qt6.NewQHBoxLayout2()
-	memoryLayout.SetContentsMargins(10, 10, 10, 10)
+	memoryLayout.SetContentsMargins(0, 0, 0, 0)
+	memoryLayout.SetSpacing(0)
 
 	memoryInfoContainer, memoryInfoUpdateFunc := createMemoryInfoContainer(memoryInfo.info)
 
 	//memoryChart, memoryChartUpdateFunc := CreateMemoryGraphContainer(info)
 	memoryChart, memoryChartUpdateFunc := createMemoryAreaGraph(memoryInfo)
+	memoryChart.SetContentsMargins(0, 0, 0, 0)
 
 	memoryLayout.AddWidget(memoryInfoContainer)
 	memoryLayout.AddWidget(memoryChart)

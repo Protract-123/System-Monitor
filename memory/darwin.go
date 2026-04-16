@@ -11,6 +11,7 @@ import (
 	"System_Monitor/utils"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -32,7 +33,6 @@ func GenerateUI() *qt6.QLayout {
 
 	memoryInfoContainer, memoryInfoUpdateFunc := createMemoryInfoContainer(memoryInfo.info)
 
-	//memoryChart, memoryChartUpdateFunc := CreateMemoryGraphContainer(info)
 	memoryChart, memoryChartUpdateFunc := createMemoryAreaGraph(memoryInfo)
 	memoryChart.SetContentsMargins(0, 0, 0, 0)
 
@@ -41,18 +41,26 @@ func GenerateUI() *qt6.QLayout {
 
 	go func() {
 		secondTicker := time.NewTicker(time.Second)
+		defer secondTicker.Stop()
+
 		minuteTicker := time.NewTicker(time.Minute)
+		defer minuteTicker.Stop()
+
+		latest := memoryInfo
 
 		for {
 			select {
 			case <-secondTicker.C:
-				if err := updateInfo(&memoryInfo); err != nil {
-					return
+				if err := updateInfo(&latest); err != nil {
+					log.Printf("memory: updateInfo failed: %v", err)
+					continue
 				}
-				memoryInfoUpdateFunc(&memoryInfo.info)
+				snapshot := latest
+				memoryInfoUpdateFunc(&snapshot.info)
 
 			case <-minuteTicker.C:
-				memoryChartUpdateFunc(&memoryInfo)
+				snapshot := latest
+				memoryChartUpdateFunc(&snapshot)
 			}
 		}
 	}()
@@ -64,14 +72,14 @@ func createMemoryAreaGraph(memoryInfo darwinInfo) (*qt6.QWidget, func(memoryInfo
 	memoryChartView := charts6.NewQChartView2()
 	memoryChart := charts6.NewQChart()
 
-	compressedMemoryValues := [30]float32{} // 2nd Level
-	appMemoryValues := [30]float32{}        // 3rd Level
-	wiredMemoryValues := [30]float32{}      // 4th Level
+	compressedMemoryValues := [chartSampleCount]float32{} // 2nd Level
+	appMemoryValues := [chartSampleCount]float32{}        // 3rd Level
+	wiredMemoryValues := [chartSampleCount]float32{}      // 4th Level
 	// Bottom level is X Axis
 
-	timestamps := [30]string{}
+	timestamps := [chartSampleCount]string{}
 
-	generateLevel := func(color *qt6.QColor, dataArray *[30]float32, hoverTitle string) (*charts6.QLineSeries, *charts6.QScatterSeries) {
+	generateLevel := func(color *qt6.QColor, dataArray *[chartSampleCount]float32, hoverTitle string) (*charts6.QLineSeries, *charts6.QScatterSeries) {
 		level := charts6.NewQLineSeries()
 		level.SetColor(color)
 
@@ -82,11 +90,16 @@ func createMemoryAreaGraph(memoryInfo darwinInfo) (*qt6.QWidget, func(memoryInfo
 				return
 			}
 
+			idx := int(point.X())
+			if idx < 0 || idx >= chartSampleCount {
+				return
+			}
+
 			text := fmt.Sprintf(
 				"Time: %s\n%s: %.2f",
-				timestamps[int(point.X())],
+				timestamps[idx],
 				hoverTitle,
-				dataArray[int(point.X())],
+				dataArray[idx],
 			)
 
 			qt6.QToolTip_ShowText(
@@ -102,9 +115,13 @@ func createMemoryAreaGraph(memoryInfo darwinInfo) (*qt6.QWidget, func(memoryInfo
 
 	}
 
-	levelTwo, levelTwoMarkers := generateLevel(qt6.NewQColor3(186, 225, 255), &compressedMemoryValues, "Compressed Memory")
-	levelThree, levelThreeMarkers := generateLevel(qt6.NewQColor3(186, 225, 255), &appMemoryValues, "App Memory")
-	levelFour, levelFourMarkers := generateLevel(qt6.NewQColor3(186, 225, 255), &wiredMemoryValues, "Wired Memory")
+	compressedColor := qt6.NewQColor3(186, 225, 255)
+	appColor := qt6.NewQColor3(120, 180, 240)
+	wiredColor := qt6.NewQColor3(70, 130, 200)
+
+	levelTwo, levelTwoMarkers := generateLevel(compressedColor, &compressedMemoryValues, "Compressed Memory")
+	levelThree, levelThreeMarkers := generateLevel(appColor, &appMemoryValues, "App Memory")
+	levelFour, levelFourMarkers := generateLevel(wiredColor, &wiredMemoryValues, "Wired Memory")
 
 	areaTwo := charts6.NewQAreaSeries4(levelTwo, levelThree)
 	areaThree := charts6.NewQAreaSeries4(levelThree, levelFour)
@@ -112,14 +129,13 @@ func createMemoryAreaGraph(memoryInfo darwinInfo) (*qt6.QWidget, func(memoryInfo
 
 	memoryChartXAxis := charts6.NewQValueAxis()
 	memoryChartXAxis.SetMin(0)
-	memoryChartXAxis.SetMax(30)
+	memoryChartXAxis.SetMax(chartSampleCount)
 	memoryChartXAxis.SetTitleText("Time")
 
 	memoryChartYAxis := charts6.NewQValueAxis()
 	memoryChartYAxis.SetMin(0)
 	memoryChartYAxis.SetMax(float64(memoryInfo.UsableMemory.Value))
 	memoryChartYAxis.SetTitleText("Memory Used")
-	//memoryChartYAxis.SetLabelFormat(fmt.Sprintf("%%.2f %s", info.TotalMemory.Unit))
 
 	addSeries := func(series *charts6.QAbstractSeries) {
 		memoryChart.AddSeries(series)
@@ -154,18 +170,16 @@ func createMemoryAreaGraph(memoryInfo darwinInfo) (*qt6.QWidget, func(memoryInfo
 	updateFunc := func(memoryInfo *darwinInfo) {
 		mainthread.Start(func() {
 			copy(timestamps[0:], timestamps[1:])
-			timestamps[len(timestamps)-1] = time.Now().Format("15:04")
+			timestamps[len(timestamps)-1] = time.Now().Format(timestampFormat)
 
-			updateArray := func(array *[30]float32, newValue float32) {
+			updateArray := func(array *[chartSampleCount]float32, newValue float32) {
 				copy(array[0:], array[1:])
 				array[len(array)-1] = newValue
 			}
 
-			updateData := func(sum *[30]float32, array *[30]float32, series1 *charts6.QLineSeries, series2 *charts6.QScatterSeries) {
-				var points [30]qt6.QPointF
+			updateData := func(sum *[chartSampleCount]float32, array *[chartSampleCount]float32, series1 *charts6.QLineSeries, series2 *charts6.QScatterSeries) {
+				var points [chartSampleCount]qt6.QPointF
 				for i := 0; i < len(sum); i++ {
-					// Removing non (0,0) causes crashes, for what reason I have no idea
-					// Perhaps QT doesn't like non-continuous lines?
 					sum[i] += array[i]
 					points[i] = *qt6.NewQPointF3(float64(i), float64(sum[i]))
 				}
@@ -178,7 +192,7 @@ func createMemoryAreaGraph(memoryInfo darwinInfo) (*qt6.QWidget, func(memoryInfo
 			updateArray(&wiredMemoryValues, memoryInfo.WiredMemory.Value)
 			updateArray(&appMemoryValues, memoryInfo.AppMemory.Value)
 
-			rollingSum := [30]float32{}
+			rollingSum := [chartSampleCount]float32{}
 
 			updateData(&rollingSum, &wiredMemoryValues, levelFour, levelFourMarkers)
 			updateData(&rollingSum, &appMemoryValues, levelThree, levelThreeMarkers)
@@ -213,25 +227,28 @@ type darwinInfo struct {
 func fetchInfo() darwinInfo {
 	memoryInfo := darwinInfo{}
 
-	totalMemory, _ := unix.SysctlUint64("hw.memsize")
+	totalMemory, err := unix.SysctlUint64("hw.memsize")
+	if err != nil {
+		log.Printf("memory: sysctl %q failed: %v", "hw.memsize", err)
+	}
 	memoryInfo.TotalMemory = utils.ConvertFromBytes(uint(totalMemory))
 
-	usableMemory, _ := unix.SysctlUint64("hw.memsize_usable")
+	usableMemory, err := unix.SysctlUint64("hw.memsize_usable")
+	if err != nil {
+		log.Printf("memory: sysctl %q failed: %v", "hw.memsize_usable", err)
+	}
 	memoryInfo.UsableMemory = utils.ConvertFromBytes(float32(usableMemory))
 
-	err := addSwapStats(&memoryInfo)
-	if err != nil {
-		return darwinInfo{}
+	if err := addSwapStats(&memoryInfo); err != nil {
+		log.Printf("memory: addSwapStats failed: %v", err)
 	}
 
-	err = addVMStats(&memoryInfo)
-	if err != nil {
-		return darwinInfo{}
+	if err := addVMStats(&memoryInfo); err != nil {
+		log.Printf("memory: addVMStats failed: %v", err)
 	}
 
-	err = addSystemPressure(&memoryInfo)
-	if err != nil {
-		return darwinInfo{}
+	if err := addSystemPressure(&memoryInfo); err != nil {
+		log.Printf("memory: addSystemPressure failed: %v", err)
 	}
 
 	return memoryInfo
@@ -332,7 +349,7 @@ func addSwapStats(info *darwinInfo) error {
 	return nil
 }
 
-func addSystemPressure(darwinInfo *darwinInfo) error {
+func addSystemPressure(info *darwinInfo) error {
 	cmd := exec.Command("memory_pressure")
 	out, err := cmd.Output()
 	if err != nil {
@@ -351,7 +368,7 @@ func addSystemPressure(darwinInfo *darwinInfo) error {
 		return err
 	}
 
-	darwinInfo.MemoryPressure = utils.ValueUnitPair[uint]{
+	info.MemoryPressure = utils.ValueUnitPair[uint]{
 		Value: 100 - uint(percent),
 		Unit:  "Percent",
 	}

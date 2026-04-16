@@ -4,6 +4,13 @@ import (
 	"System_Monitor/utils"
 )
 
+// chartSampleCount is the size of the rolling window (in samples) shown on the
+// memory chart. One sample is appended per minute tick.
+const chartSampleCount = 30
+
+// timestampFormat is the HH:MM time format displayed in the chart's hover tooltip.
+const timestampFormat = "15:04"
+
 type info struct {
 	TotalMemory  utils.ValueUnitPair[uint]    `yaml:"total_memory"`
 	UsableMemory utils.ValueUnitPair[float32] `yaml:"usable_memory"`

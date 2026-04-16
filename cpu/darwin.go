@@ -5,11 +5,18 @@ package cpu
 import (
 	"System_Monitor/utils"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/mappu/miqt/qt6"
 	"golang.org/x/sys/unix"
 )
+
+// cacheLevels are the cache tiers macOS exposes via hw.perflevelN.<name>cachesize
+var cacheLevels = [...]string{"L1i", "L1d", "L2"}
+
+// maxCoreTypes caps the number of performance levels enumerated
+const maxCoreTypes = 16
 
 func GenerateUI() *qt6.QLayout {
 	cpuInfo := fetchInfo()
@@ -33,46 +40,70 @@ func GenerateUI() *qt6.QLayout {
 func fetchInfo() info {
 	cpuInfo := info{}
 
-	cpuInfo.Model, _ = unix.Sysctl("machdep.cpu.brand_string")
+	model, err := unix.Sysctl("machdep.cpu.brand_string")
+	if err != nil {
+		log.Printf("cpu: sysctl %q failed: %v", "machdep.cpu.brand_string", err)
+	}
+	cpuInfo.Model = model
 
-	cores, _ := unix.SysctlUint32("hw.physicalcpu_max")
+	cores, err := unix.SysctlUint32("hw.physicalcpu_max")
+	if err != nil {
+		log.Printf("cpu: sysctl %q failed: %v", "hw.physicalcpu_max", err)
+	}
 	cpuInfo.Cores = uint(cores)
 
-	threads, _ := unix.SysctlUint32("hw.logicalcpu_max")
+	threads, err := unix.SysctlUint32("hw.logicalcpu_max")
+	if err != nil {
+		log.Printf("cpu: sysctl %q failed: %v", "hw.logicalcpu_max", err)
+	}
 	cpuInfo.Threads = uint(threads)
 
-	coreTypeCount, _ := unix.SysctlUint32("hw.nperflevels")
+	coreTypeCount, err := unix.SysctlUint32("hw.nperflevels")
+	if err != nil {
+		log.Printf("cpu: sysctl %q failed: %v", "hw.nperflevels", err)
+	}
 
 	cpuInfo.Codename = cpuToCodename[strings.ToLower(cpuInfo.Model)]
 
+	if coreTypeCount > maxCoreTypes {
+		log.Printf("cpu: hw.nperflevels reported %d core types, capping at %d", coreTypeCount, maxCoreTypes)
+		coreTypeCount = maxCoreTypes
+	}
+
 	for i := 0; i < int(coreTypeCount); i++ {
 		coreTypeInfo := coreInfo{}
-		coreTypeString := fmt.Sprintf("hw.perflevel%d", i)
+		coreTypeKey := fmt.Sprintf("hw.perflevel%d", i)
 
-		coreTypeInfo.Name, _ = unix.Sysctl(fmt.Sprintf("%s.name", coreTypeString))
+		name, err := unix.Sysctl(fmt.Sprintf("%s.name", coreTypeKey))
+		if err != nil {
+			log.Printf("cpu: sysctl %q failed: %v", coreTypeKey+".name", err)
+		}
+		coreTypeInfo.Name = name
 
-		coreTypeAmount, _ := unix.SysctlUint32(fmt.Sprintf("%s.physicalcpu_max", coreTypeString))
+		coreTypeAmount, err := unix.SysctlUint32(fmt.Sprintf("%s.physicalcpu_max", coreTypeKey))
+		if err != nil {
+			log.Printf("cpu: sysctl %q failed: %v", coreTypeKey+".physicalcpu_max", err)
+		}
 		coreTypeInfo.CoreCount = uint(coreTypeAmount)
 
-		coreTypeThreadAmount, _ := unix.SysctlUint32(fmt.Sprintf("%s.logicalcpu_max", coreTypeString))
+		coreTypeThreadAmount, err := unix.SysctlUint32(fmt.Sprintf("%s.logicalcpu_max", coreTypeKey))
+		if err != nil {
+			log.Printf("cpu: sysctl %q failed: %v", coreTypeKey+".logicalcpu_max", err)
+		}
 		coreTypeInfo.ThreadCount = uint(coreTypeThreadAmount)
 
-		cacheTypes := [3]string{"L1i", "L1d", "L2"}
+		for _, cacheName := range cacheLevels {
+			cacheKey := fmt.Sprintf("%s.%scachesize", coreTypeKey, strings.ToLower(cacheName))
 
-		for _, cacheType := range cacheTypes {
-			cacheKey := fmt.Sprintf("%s.%scachesize", coreTypeString, strings.ToLower(cacheType))
+			cacheSize, err := unix.SysctlUint32(cacheKey)
+			if err != nil {
+				log.Printf("cpu: sysctl %q failed: %v", cacheKey, err)
+			}
 
-			cacheSize, _ := unix.SysctlUint32(cacheKey)
+			cacheEntry := cacheInfo{Name: cacheName}
+			cacheEntry.Amount, cacheEntry.Unit = utils.ConvertFromBytesParts(uint(cacheSize))
 
-			cacheLevelInfo := cacheInfo{}
-			cacheLevelInfo.Name = cacheType
-
-			var convertedCacheSize uint
-
-			convertedCacheSize, cacheLevelInfo.Unit = utils.ConvertFromBytesParts(uint(cacheSize))
-			cacheLevelInfo.Amount = convertedCacheSize
-
-			coreTypeInfo.CacheLevelInfos = append(coreTypeInfo.CacheLevelInfos, cacheLevelInfo)
+			coreTypeInfo.CacheLevelInfos = append(coreTypeInfo.CacheLevelInfos, cacheEntry)
 		}
 
 		cpuInfo.CoreTypeInfos = append(cpuInfo.CoreTypeInfos, coreTypeInfo)

@@ -83,8 +83,8 @@ func createMemoryGraphContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo 
 	memoryChartView := charts6.NewQChartView2()
 	memoryChart := charts6.NewQChart()
 
-	memoryUsedValues := [30]float32{}
-	timestamps := [30]string{}
+	memoryUsedValues := [chartSampleCount]float32{}
+	timestamps := [chartSampleCount]string{}
 
 	memoryUsedLine := charts6.NewQLineSeries()
 	memoryUsedLine.SetColor(qt6.NewQColor3(186, 225, 255))
@@ -96,9 +96,14 @@ func createMemoryGraphContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo 
 			return
 		}
 
+		idx := int(point.X())
+		if idx < 0 || idx >= chartSampleCount {
+			return
+		}
+
 		text := fmt.Sprintf(
 			"Time: %s\nMemory Used: %.2f",
-			timestamps[int(point.X())],
+			timestamps[idx],
 			point.Y(),
 		)
 
@@ -113,14 +118,13 @@ func createMemoryGraphContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo 
 
 	memoryChartXAxis := charts6.NewQValueAxis()
 	memoryChartXAxis.SetMin(0)
-	memoryChartXAxis.SetMax(30)
+	memoryChartXAxis.SetMax(chartSampleCount)
 	memoryChartXAxis.SetTitleText("Time")
 
 	memoryChartYAxis := charts6.NewQValueAxis()
 	memoryChartYAxis.SetMin(0)
 	memoryChartYAxis.SetMax(float64(memoryInfo.UsableMemory.Value))
 	memoryChartYAxis.SetTitleText("Memory Used")
-	//memoryChartYAxis.SetLabelFormat(fmt.Sprintf("%%.2f %s", info.TotalMemory.Unit))
 
 	memoryChart.AddSeries(memoryUsedLine.QAbstractSeries)
 	memoryChart.AddSeries(memoryUsedMarkers.QAbstractSeries)
@@ -152,12 +156,10 @@ func createMemoryGraphContainer(memoryInfo info) (*qt6.QWidget, func(memoryInfo 
 			memoryUsedValues[len(memoryUsedValues)-1] = memoryInfo.UsedMemory.Value
 
 			copy(timestamps[0:], timestamps[1:])
-			timestamps[len(timestamps)-1] = time.Now().Format("15:04")
+			timestamps[len(timestamps)-1] = time.Now().Format(timestampFormat)
 
-			var points [30]qt6.QPointF
+			var points [chartSampleCount]qt6.QPointF
 			for i := 0; i < len(memoryUsedValues); i++ {
-				// Removing non (0,0) causes crashes, for what reason I have no idea
-				// Perhaps QT doesn't like non-continuous lines?
 				points[i] = *qt6.NewQPointF3(float64(i), float64(memoryUsedValues[i]))
 			}
 

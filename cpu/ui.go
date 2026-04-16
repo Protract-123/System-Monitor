@@ -3,13 +3,17 @@ package cpu
 import (
 	"System_Monitor/ui"
 	"fmt"
+	"log"
 
 	"github.com/mappu/miqt/qt6"
 )
 
 func createCPUImage() *qt6.QWidget {
 	imageObject := qt6.NewQLabel(nil)
-	imageBytes, _ := icons.ReadFile("icons/AppleM1.png")
+	imageBytes, err := icons.ReadFile("icons/AppleM1.png")
+	if err != nil {
+		log.Printf("cpu: failed to read embedded icon %q: %v", "icons/AppleM1.png", err)
+	}
 
 	pixmap := qt6.NewQPixmap()
 	pixmap.LoadFromData5(imageBytes, "", qt6.AutoColor)

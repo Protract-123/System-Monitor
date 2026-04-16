@@ -2,6 +2,7 @@ package disk
 
 import (
 	"System_Monitor/utils"
+	"log"
 	"strings"
 	"syscall"
 
@@ -24,12 +25,25 @@ func fetchInfo() info {
 	var stat syscall.Statfs_t
 	err := syscall.Statfs("/", &stat)
 	if err != nil {
-		return info{}
+		log.Printf("disk: statfs(\"/\") failed: %v", err)
+		return info{
+			DiskMountPoint:   "/",
+			FilesystemFormat: "Unknown",
+		}
 	}
 
 	totalBytes := stat.Blocks * uint64(stat.Bsize)
 	freeBytes := stat.Bavail * uint64(stat.Bsize)
-	usedBytes := totalBytes - freeBytes
+
+	var usedBytes uint64
+	if freeBytes < totalBytes {
+		usedBytes = totalBytes - freeBytes
+	}
+
+	usedPercent := 0
+	if totalBytes > 0 {
+		usedPercent = int((100 * float32(usedBytes)) / float32(totalBytes))
+	}
 
 	return info{
 		DiskMountPoint:   "/",
@@ -37,10 +51,12 @@ func fetchInfo() info {
 		Size:             utils.ConvertFromBytes(float32(totalBytes)),
 		AvailableSpace:   utils.ConvertFromBytes(float32(freeBytes)),
 		UsedSpace:        utils.ConvertFromBytes(float32(usedBytes)),
-		UsedPercent:      int((100 * float32(usedBytes)) / float32(totalBytes)),
+		UsedPercent:      usedPercent,
 	}
 }
 
+// int8ToStr converts a C-style int8 byte array to a Go string, stopping at the
+// first null terminator. If no null is present, the whole array is returned.
 func int8ToStr(arr []int8) string {
 	b := make([]byte, len(arr))
 	for i, v := range arr {

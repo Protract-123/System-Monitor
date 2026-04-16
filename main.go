@@ -32,15 +32,15 @@ func main() {
 	diskLayout := disk.GenerateUI()
 	diskContainer.SetLayout(diskLayout)
 
-	var divider = ui.NewDivider(1, ui.Vertical)
-	var divider2 = ui.NewDivider(1, ui.Vertical)
+	cpuMemoryDivider := ui.NewDivider(1, ui.Vertical)
+	memoryDiskDivider := ui.NewDivider(1, ui.Vertical)
 	rootLayout.SetSpacing(10)
 
 	rootLayout.AddStretchWithStretch(1)
 	rootLayout.AddWidget(cpuContainer)
-	rootLayout.AddWidget(divider.QWidget)
+	rootLayout.AddWidget(cpuMemoryDivider.QWidget)
 	rootLayout.AddWidget(memoryContainer)
-	rootLayout.AddWidget(divider2.QWidget)
+	rootLayout.AddWidget(memoryDiskDivider.QWidget)
 	rootLayout.AddWidget(diskContainer)
 	rootLayout.AddStretchWithStretch(1)
 

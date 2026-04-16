@@ -1,5 +1,7 @@
 package utils
 
+import "log"
+
 var units = [...]string{"KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"}
 
 func ConvertFromBytes[T Number](bytes T) ValueUnitPair[T] {
@@ -25,11 +27,19 @@ func ConvertFromBytesParts[T Number](bytes T) (T, string) {
 }
 
 func ConvertFromBytesToUnit[T Number](bytes T, unit string) ValueUnitPair[T] {
+	if unit == "Bytes" {
+		return ValueUnitPair[T]{Value: bytes, Unit: "Bytes"}
+	}
+
 	value := bytes
 	currUnit := "Bytes"
 
 	i := 0
 	for currUnit != unit {
+		if i >= len(units) {
+			log.Printf("utils: unknown unit %q, returning raw bytes", unit)
+			return ValueUnitPair[T]{Value: bytes, Unit: "Bytes"}
+		}
 		value = value / 1024
 		currUnit = units[i]
 		i += 1

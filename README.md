@@ -54,7 +54,3 @@ make install                # install via `go install`
 
 For more detail on building miqt-based projects (including how to install Qt 6 on your platform), refer to
 [miqt's documentation](https://github.com/mappu/miqt).
-
-## License
-
-System Monitor is released under the [MIT License](LICENSE)

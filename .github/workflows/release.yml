@@ -24,6 +24,7 @@ jobs:
           host: mac
           target: desktop
           arch: clang_64
+          modules: 'qtcharts'
           cache: true
 
       - name: Build macOS arm64
@@ -50,3 +51,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*.zip
+          body: |
+            ## Source Code
+
+            This release is licensed under the GNU General Public License v3.0.
+            The complete corresponding source code for this release is available
+            in this repository at tag [`${{ github.ref_name }}`](https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}).
+
+            Third-party license texts are included inside the release archive under `LICENSES/`.

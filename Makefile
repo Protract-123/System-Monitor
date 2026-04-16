@@ -24,7 +24,9 @@ app: build
 	cp $(BINARY) $(APP_NAME)/Contents/MacOS/$(BINARY)
 	plutil -replace CFBundleShortVersionString -string "$(VERSION)" $(APP_NAME)/Contents/Info.plist
 	plutil -replace CFBundleVersion -string "$(VERSION)" $(APP_NAME)/Contents/Info.plist
+	install_name_tool -add_rpath @executable_path/../Frameworks $(APP_NAME)/Contents/MacOS/$(BINARY)
 	macdeployqt $(APP_NAME)
+	codesign --force --sign - $(APP_NAME)
 
 clean:
 	rm -rf $(BINARY) $(APP_NAME)

@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.0'
+          host: mac
+          target: desktop
+          arch: clang_64
+          cache: true
+
+      - name: Build macOS arm64
+        run: make build
+
+      - name: Package
+        run: zip -r system-monitor-darwin-arm64.zip system-monitor
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: system-monitor-darwin-arm64
+          path: system-monitor-darwin-arm64.zip
+
+  release:
+    needs: [build-mac-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip

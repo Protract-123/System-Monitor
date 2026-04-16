@@ -27,10 +27,10 @@ jobs:
           cache: true
 
       - name: Build macOS arm64
-        run: make build
+        run: make app VERSION="${GITHUB_REF_NAME#v}"
 
       - name: Package
-        run: zip -r system-monitor-darwin-arm64.zip system-monitor
+        run: zip -r system-monitor-darwin-arm64.zip System-Monitor.app
 
       - uses: actions/upload-artifact@v6
         with:

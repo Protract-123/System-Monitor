@@ -2,45 +2,46 @@ package main
 
 import (
 	"System_Monitor/cpu"
+	"System_Monitor/disk"
 	"System_Monitor/memory"
 	"System_Monitor/ui"
-	"System_Monitor/utils"
-	"fmt"
 	"os"
 
 	"github.com/mappu/miqt/qt6"
 )
 
 func main() {
-	qApp := qt6.NewQApplication(os.Args)
+	qt6.NewQApplication(os.Args)
 	ui.LoadFonts()
 
 	window := qt6.NewQMainWindow(nil)
-	window.SetWindowTitle("MIQT Qt6 App")
+	window.SetWindowTitle("System Monitor")
 
 	rootContainer := qt6.NewQWidget2()
 	rootLayout := qt6.NewQHBoxLayout2()
 
 	cpuContainer := qt6.NewQWidget2()
-	cpuContainer.SetContentsMargins(0, 0, 0, 0)
 	cpuLayout := cpu.GenerateUI()
 	cpuContainer.SetLayout(cpuLayout)
-
-	//utils.AddDebugBorder(cpuContainer, "red", 1)
 
 	memoryContainer := qt6.NewQWidget2()
 	memoryLayout := memory.GenerateUI()
 	memoryContainer.SetLayout(memoryLayout)
 
-	//utils.AddDebugBorder(memoryContainer, "red", 1)
+	diskContainer := qt6.NewQWidget2()
+	diskLayout := disk.GenerateUI()
+	diskContainer.SetLayout(diskLayout)
 
 	var divider = ui.NewDivider(1, ui.Vertical)
+	var divider2 = ui.NewDivider(1, ui.Vertical)
 	rootLayout.SetSpacing(10)
 
 	rootLayout.AddStretchWithStretch(1)
 	rootLayout.AddWidget(cpuContainer)
 	rootLayout.AddWidget(divider.QWidget)
 	rootLayout.AddWidget(memoryContainer)
+	rootLayout.AddWidget(divider2.QWidget)
+	rootLayout.AddWidget(diskContainer)
 	rootLayout.AddStretchWithStretch(1)
 
 	rootContainer.SetLayout(rootLayout.QLayout)
@@ -51,9 +52,6 @@ func main() {
 	window.Show()
 
 	window.SetFixedSize(window.Size())
-
-	fmt.Println(qApp.ObjectName())
-	utils.DumpQObjectTree(window.QObject, 0)
 
 	qt6.QApplication_Exec()
 }

@@ -26,7 +26,7 @@ func GenerateUI() *qt6.QLayout {
 	cpuLayout.SetVerticalSpacing(10)
 	cpuLayout.SetHorizontalSpacing(10)
 
-	imageContainer := createCPUImage()
+	imageContainer := createCPUImage(cpuInfo.IconPath)
 	cpuInfoContainer := createCPUInfoContainer(cpuInfo)
 	coreInfoGrid := createCoreInfoGrid(cpuInfo)
 
@@ -63,7 +63,8 @@ func fetchInfo() info {
 		log.Printf("cpu: sysctl %q failed: %v", "hw.nperflevels", err)
 	}
 
-	cpuInfo.Codename = cpuToCodename[strings.ToLower(cpuInfo.Model)]
+	cpuInfo.Codename = lookupBaseModel(cpuInfo.Model, cpuToCodename)
+	cpuInfo.IconPath = lookupBaseModel(cpuInfo.Model, cpuToFilePath)
 
 	if coreTypeCount > maxCoreTypes {
 		log.Printf("cpu: hw.nperflevels reported %d core types, capping at %d", coreTypeCount, maxCoreTypes)

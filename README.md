@@ -30,6 +30,8 @@ Windows or Linux.
   - Total, used, and available space
   - Used percentage
 
+Note: Some CPU functionality on M Series variations (e.g. Pro, Max, Ultra) may not work as intended.
+
 ## Installation
 
 You can download a prebuilt `System-Monitor.app` from the [Releases](https://github.com/Protract-123/System-Monitor/releases) page.

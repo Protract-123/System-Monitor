@@ -1,6 +1,10 @@
 package cpu
 
-import "embed"
+import (
+	"embed"
+	"regexp"
+	"strings"
+)
 
 type info struct {
 	Model         string     `yaml:"cpu_model"`
@@ -8,6 +12,7 @@ type info struct {
 	Threads       uint       `yaml:"cpu_threads"`
 	Codename      string     `yaml:"cpu_codename"`
 	CoreTypeInfos []coreInfo `yaml:"cpu_core_infos"`
+	IconPath      string     `yaml:"icon_path"`
 }
 
 type coreInfo struct {
@@ -31,6 +36,21 @@ var cpuToCodename = map[string]string{
 	"apple m3": "Ibiza",
 	"apple m4": "Donan",
 	"apple m5": "Hidra",
+}
+
+var cpuToFilePath = map[string]string{
+	"apple m1": "icons/AppleM1.png",
+	"apple m2": "icons/AppleM2.png",
+	"apple m3": "icons/AppleM3.png",
+	"apple m4": "icons/AppleM4.png",
+	"apple m5": "icons/AppleM5.png",
+}
+
+var baseModelRegex = regexp.MustCompile(`(?i)apple m\d+`)
+
+func lookupBaseModel(model string, m map[string]string) string {
+	base := baseModelRegex.FindString(model)
+	return m[strings.ToLower(base)]
 }
 
 //go:embed icons

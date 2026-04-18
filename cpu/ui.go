@@ -8,9 +8,9 @@ import (
 	"github.com/mappu/miqt/qt6"
 )
 
-func createCPUImage() *qt6.QWidget {
+func createCPUImage(imagePath string) *qt6.QWidget {
 	imageObject := qt6.NewQLabel(nil)
-	imageBytes, err := icons.ReadFile("icons/AppleM1.png")
+	imageBytes, err := icons.ReadFile(imagePath)
 	if err != nil {
 		log.Printf("cpu: failed to read embedded icon %q: %v", "icons/AppleM1.png", err)
 	}
